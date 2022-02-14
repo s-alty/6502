@@ -140,32 +140,29 @@ class CPU:
         method(instruction)
 
 
-    def handle_addressing_modes(self, instruction):
+    # return the address refrenced by the operand and the addressing mode
+    def resolve_address(self, instruction):
         val = as_int(instruction.operand)
         match instruction.addressing_mode:
-            case "immediate":
-                return val
             case "zpg":
-                return as_int(self.mem[val])
+                return val
             case "zpgx"
-                return as_int(self.mem[val]) + self.x
+                return val + self.x % 256
+            case "zpgy"
+                return val + self.y % 256
             case "abs":
-                return as_int(self.mem[val])
+                return val
             case "absx":
-                return as_int(self.mem[val]) + self.x
+                return val + self.x
             case "absy":
-                return as_int(self.mem[val]) + self.y
+                return val + self.y
             case "indx":
-                addr = read_as_address(val + self.x)
-                return as_int(self.mem[addr])
+                return read_as_address(self.mem, val + self.x)
             case "indy":
-                addr = read_as_address(val) + self.y
-                return as_int(self.mem[addr])
-
+                return read_as_address(self.mem, val) + self.y
 
 
     # OP Implementations
-
     # TODO arithmatic should be signed and limited to one byte
     def NOP(self, _):
         pass
@@ -214,17 +211,28 @@ class CPU:
         self.pc = dest
 
     def CMP(self, instruction):
-        val = handle_addressing_modes(self, instruction)
+        if instruction.mode == 'immediate':
+            val = as_int(instruction.operand)
+        else:
+            addr = resolve_address(self, instruction)
+            val = as_int(self.mem[addr])
+
         self.flags['C'] = self.a >= val
         self.flags['Z'] = self.a == val
         self.flags['N'] = self.a >= 0x80
 
     def LDA(self, instruction):
-        val = handle_addressing_modes(self, instruction)
+        if instruction.mode == 'immediate':
+            val = as_int(instruction.operand)
+        else:
+            addr = resolve_address(self, instruction)
+            val = as_int(self.mem[addr])
+
         self.a = val
 
     def STA(self, instruction):
-
+        addr = resolve_address(self, instruction)
+        self.mem[addr] = self.a
 
 
 if __name__ == '__main__':
