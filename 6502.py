@@ -163,7 +163,6 @@ class CPU:
 
 
     # OP Implementations
-    # TODO arithmatic should be signed and limited to one byte
     def NOP(self, _):
         pass
 
@@ -174,11 +173,11 @@ class CPU:
         self.a = self.x
 
     def DEX(self, _):
-        self.x -= 1
+        self.x = (self.x - 1) % 256
         # TODO flags?
 
     def INX(self, _):
-        self.x += 1
+        self.x = (self.x + 1) % 256
 
     def TAY(self, _):
         self.y = self.a
@@ -187,10 +186,10 @@ class CPU:
         self.a = self.y
 
     def DEY(self, _):
-        self.y-= 1
+        self.y = (self.y - 1) % 256
 
     def INY(self, _):
-        self.y += 1
+        self.y = (self.y + 1) % 256
 
     def PHA(self, _):
         self.memory[sp] = self.a
