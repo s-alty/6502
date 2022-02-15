@@ -8,7 +8,6 @@ RESET_VEC_ADDR = 0xFFFC
 # map of opcode to tuple of type, addressing_mode, and byte_size
 OPCODE_TABLE = {
     0xEA: ("NOP", None, 1),
-    0x20: ("JSR", None, 3),
 
     # stack instructions
     0x48: ("PHA", None, 1),
@@ -17,6 +16,9 @@ OPCODE_TABLE = {
     # flow control
     0x4C: ("JMP", "abs", 3),
     0x6C: ("JMP", "ind", 3),
+
+    0x20: ("JSR", "abs", 3),
+    0x60: ("RTS", None, 1),
 
     0xC9: ("CMP", "immediate", 2),
     0xC5: ("CMP", "zpg", 2),
@@ -194,13 +196,20 @@ class CPU:
     def INY(self, _):
         self.y = (self.y + 1) % 256
 
-    def PHA(self, _):
-        self.memory[sp] = self.a
+
+    def stack_push(self, val):
+        self.memory[sp] = va
         self.sp -= 1
 
-    def PLA(self, _):
+    def stack_pop(self):
         self.sp += 1
-        self.a = self.memory[sp]
+        return self.memory[sp]
+
+    def PHA(self, _):
+        self.stack_push(self.a)
+
+    def PLA(self, _):
+        self.a = self.stack_pop()
 
     def JMP(self, instruction):
         val = as_int(instruction.operand)
@@ -236,6 +245,22 @@ class CPU:
         addr = resolve_address(self, instruction)
         self.mem[addr] = self.a
 
+
+    def JSR(self, instruction):
+        dest = as_int(instruction.operand)
+
+        # save the current program counter on the stack before we modify it
+        pc_bytes = self.pc.to_bytes(2, byte_order='little')
+        # store with the low byte on the top of the stack
+        self.stack_push(pc_bytes[1])
+        self.stack_push(pc_bytes[0])
+
+        self.pc = dest
+
+    def RTS(self, _):
+        lo = stack_pop()
+        hi = stack_pop()
+        self.pc = int.from_bytes(bytes([lo, hi]), byteorder='little', signed=False)
 
 if __name__ == '__main__':
     mem = bytearray(2 ** 32)
