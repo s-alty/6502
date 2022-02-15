@@ -3,6 +3,8 @@ import operator
 
 Instruction = collections.namedtuple('Instruction', ['optype', 'addressing_mode', 'operand', 'byte_size'])
 
+RESET_VEC_ADDR = 0xFFFC
+
 # map of opcode to tuple of type, addressing_mode, and byte_size
 OPCODE_TABLE = {
     0xEA: ("NOP", None, 1),
@@ -87,18 +89,6 @@ def read_as_address(mem, addr):
     return as_int(bs)
 
 
-def read_instruction(mem, addr):
-    opcode = mem[addr]
-
-    # TODO: handle invalid opcodes
-    optype, addressing_mode, byte_size = OPCODE_TABLE[opcode]
-
-    # check if we need to read additional bytes for the operand
-    operand_bytes = None
-    if byte_size > 1:
-        operand_bytes = mem[addr+1:addr+byte_size]
-    return Instruction(optype, addressing_mode, operand_bytes, byte_size)
-
 class CPU:
     def __init__(self, memory):
         self.a = 0
@@ -121,19 +111,32 @@ class CPU:
         # stack starts by pointing at the last byte of the 01 page
         self.sp = 0x01FF
         # start by reading the address used to initalize the program counter
-        self.pc = read_as_address(self.mem, 0xfffc)
+        self.pc = read_as_address(self.mem, RESET_VEC_ADDR)
         while True:
             self.step()
 
+
+    # this is a method because we have to both parse the instruction and update the program counter while we're doing it
+    def read_instruction(self):
+        opcode = self.mem[self.pc]
+        self.pc += 1
+
+        # TODO: handle invalid opcodes
+        optype, addressing_mode, byte_size = OPCODE_TABLE[opcode]
+        operand_size = byte_size - 1
+
+        # check if we need to read additional bytes for the operand
+        operand_bytes = None
+        if operand_size > 0:
+            operand_bytes = mem[self.pc:self.pc+operand_size]
+            self.pc += operand_size
+        return Instruction(optype, addressing_mode, operand_bytes, byte_size)
+
+
     def step(self):
-        instruction = read_instruction(mem, self.pc)
+        instruction = read_instruction()
         self.evaluate(instruction)
 
-        # we shouldn't increment the program counter after a jump instruction
-        if instruction.optype == "JMP":
-            continue
-        else:
-            self.pc += instruction.byte_size
 
     def evaluate(self, instruction):
         method = operator.attrgetter(instruction.optype)(self)
