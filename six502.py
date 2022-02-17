@@ -107,7 +107,7 @@ class CPU:
             'Z': False,
             'C': False
         }
-        self.memory = memory
+        self.mem = memory
 
     def run(self):
         # stack starts by pointing at the last byte of the 01 page
@@ -198,12 +198,12 @@ class CPU:
 
 
     def stack_push(self, val):
-        self.memory[sp] = va
+        self.mem[sp] = va
         self.sp -= 1
 
     def stack_pop(self):
         self.sp += 1
-        return self.memory[sp]
+        return self.mem[sp]
 
     def PHA(self, _):
         self.stack_push(self.a)
@@ -263,6 +263,6 @@ class CPU:
         self.pc = int.from_bytes(bytes([lo, hi]), byteorder='little', signed=False)
 
 if __name__ == '__main__':
-    mem = bytearray(2 ** 32)
+    mem = bytearray(2 ** 16)
     cpu = CPU(mem)
     cpu.run()
