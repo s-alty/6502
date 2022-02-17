@@ -151,9 +151,9 @@ class CPU:
         match instruction.addressing_mode:
             case "zpg":
                 return val
-            case "zpgx"
+            case "zpgx":
                 return val + self.x % 256
-            case "zpgy"
+            case "zpgy":
                 return val + self.y % 256
             case "abs":
                 return val
