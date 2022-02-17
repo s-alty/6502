@@ -96,7 +96,7 @@ class CPU:
         self.a = 0
         self.x = 0
         self.y = 0
-        self.sp = 0
+        self.sp = 0x01FF # stack starts by pointing at the last byte of the 01 page
         self.pc = 0
         self.flags = {
             'N': False,
@@ -110,8 +110,6 @@ class CPU:
         self.mem = memory
 
     def run(self):
-        # stack starts by pointing at the last byte of the 01 page
-        self.sp = 0x01FF
         # start by reading the address used to initalize the program counter
         self.pc = read_as_address(self.mem, RESET_VEC_ADDR)
         while True:
@@ -130,13 +128,13 @@ class CPU:
         # check if we need to read additional bytes for the operand
         operand_bytes = None
         if operand_size > 0:
-            operand_bytes = mem[self.pc:self.pc+operand_size]
+            operand_bytes = self.mem[self.pc:self.pc+operand_size]
             self.pc += operand_size
         return Instruction(optype, addressing_mode, operand_bytes, byte_size)
 
 
     def step(self):
-        instruction = read_instruction()
+        instruction = self.read_instruction()
         self.evaluate(instruction)
 
 
@@ -198,12 +196,12 @@ class CPU:
 
 
     def stack_push(self, val):
-        self.mem[sp] = va
+        self.mem[self.sp] = val
         self.sp -= 1
 
     def stack_pop(self):
         self.sp += 1
-        return self.mem[sp]
+        return self.mem[self.sp]
 
     def PHA(self, _):
         self.stack_push(self.a)
@@ -250,7 +248,7 @@ class CPU:
         dest = as_int(instruction.operand)
 
         # save the current program counter on the stack before we modify it
-        pc_bytes = self.pc.to_bytes(2, byte_order='little')
+        pc_bytes = self.pc.to_bytes(2, byteorder='little')
         # store with the low byte on the top of the stack
         self.stack_push(pc_bytes[1])
         self.stack_push(pc_bytes[0])
@@ -258,8 +256,8 @@ class CPU:
         self.pc = dest
 
     def RTS(self, _):
-        lo = stack_pop()
-        hi = stack_pop()
+        lo = self.stack_pop()
+        hi = self.stack_pop()
         self.pc = int.from_bytes(bytes([lo, hi]), byteorder='little', signed=False)
 
 if __name__ == '__main__':

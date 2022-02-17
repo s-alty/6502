@@ -46,3 +46,46 @@ class TestAddressingModes(unittest.TestCase):
             result,
             int.from_bytes(bytes([42, 57]), 'little') + 20
         )
+
+class TestSubRoutine(unittest.TestCase):
+    def setUp(self):
+        self.addr = 11337
+        self.memory = bytearray(2**16)
+        self.memory[self.addr] = 42
+        self.cpu = six502.CPU(self.memory)
+        self.cpu.pc = 25
+
+    def test_JSR(self):
+        self.assertEqual(self.cpu.pc, 25)
+        self.assertEqual(self.cpu.sp, 0x01FF)
+
+        instruction = six502.Instruction('JSR', 'abs', self.addr.to_bytes(2, 'little'), 3)
+        self.cpu.evaluate(instruction)
+
+        self.assertEqual(self.cpu.pc, self.addr)
+        self.assertEqual(self.cpu.sp, 0x01FF - 2)
+
+
+    def test_RTS(self):
+        self.assertEqual(self.cpu.pc, 25)
+        self.assertEqual(self.cpu.sp, 0x01FF)
+
+        # write the jsr instruction into memory
+        dest_addr_bytes = self.addr.to_bytes(2, 'little')
+        self.memory[self.cpu.pc] = 0x20
+        self.memory[self.cpu.pc+1] = dest_addr_bytes[0]
+        self.memory[self.cpu.pc+2] = dest_addr_bytes[1]
+
+        # perform the jsr
+        self.cpu.step()
+
+        self.assertEqual(self.cpu.pc, self.addr)
+        self.assertEqual(self.cpu.sp, 0x01FF - 2)
+
+        # Now trigger the rts
+        rts = six502.Instruction('RTS', None, None, 1)
+        self.cpu.evaluate(rts)
+
+        # the original value of the program counter + 3 bytes from the jsr instruction
+        self.assertEqual(self.cpu.pc, 28)
+        self.assertEqual(self.cpu.sp, 0x01FF) # back to the original value
