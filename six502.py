@@ -160,7 +160,11 @@ class CPU:
             case "absy":
                 return val + self.y
             case "indx":
-                return read_as_address(self.mem, val + self.x)
+                # this addition doesn't carry
+                lo_plus_x = (instruction.operand[0] + self.x) % 256
+                hi = instruction.operand[1]
+                addr = as_int(bytes([lo_plus_x, hi]))
+                return read_as_address(self.mem, addr)
             case "indy":
                 return read_as_address(self.mem, val) + self.y
 

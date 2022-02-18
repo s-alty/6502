@@ -36,6 +36,23 @@ class TestAddressingModes(unittest.TestCase):
         result = self.cpu.resolve_address(instruction)
         self.assertEqual(result, int.from_bytes(bytes([99, 66]), 'little'))
 
+    def test_indirect_x_doesnt_carry(self):
+        self.memory[0x0300] = 99
+        self.memory[0x0301] = 99
+
+        self.memory[0x0200] = 66
+        self.memory[0x0201] = 66
+
+        self.cpu.x = 1
+        # if this addressing mode used carry we would expect it to use the address stored in 0x0300
+        # since the addition with x is done without carry it will instead use the address stored in 0x0200
+        operand_addr = 0x02FF
+        instruction = six502.Instruction('LDA', 'indx', operand_addr.to_bytes(2, 'little'), 3)
+
+        result = self.cpu.resolve_address(instruction)
+        self.assertEqual(result, int.from_bytes(bytes([66, 66]), 'little'))
+
+
     def test_indirect_with_y(self):
         self.memory[self.addr+1] = 57
 
