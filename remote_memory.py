@@ -8,7 +8,7 @@ import queue
 OP_READ = b'\x01'
 OP_WRITE = b'\x02'
 
-MSGTYPE_GET_RESPONSE = b'\x01'
+MSGTYPE_GET_RESPONSE = b'\x0A'
 
 
 Page = collections.namedtuple('Page', ['pageno', 'data'])
@@ -18,7 +18,7 @@ def parse_message(bs):
     # one byte message type (only one for now)
     # one byte page number
     # 256 bytes page
-    _optype, pageno, bs = struct.unpack('cc255s'. bs)
+    _optype, pageno, bs = struct.unpack('cc256s'. bs)
     return Page(int.from_bytes(pageno, 'little', signed=False), bytearray(bs))
 
 
