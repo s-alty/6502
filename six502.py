@@ -223,16 +223,29 @@ class CPU:
                 dest = read_as_address(self.mem, val)
         self.pc = dest
 
-    def CMP(self, instruction):
+    def handle_cmp(self, instruction, reg):
         if instruction.mode == 'immediate':
             val = as_int(instruction.operand)
         else:
             addr = resolve_address(self, instruction)
             val = as_int(self.mem[addr])
 
-        self.flags['C'] = self.a >= val
-        self.flags['Z'] = self.a == val
-        self.flags['N'] = self.a >= 0x80
+        self.flags['Z'] = reg == val
+        self.flags['C'] = reg >= val
+
+        difference = reg - val
+        # test if highest bit is set
+        self.flags['N'] = bool(difference & 0x80)
+
+    def CMP(self, instruction):
+        handle_cmp(self, instruction, self.a)
+
+    def CPX(self, instruction):
+        handle_cmp(self, instruction, self.x)
+
+    def CPY(self, instruction):
+        handle_cmp(self, instruction, self.y)
+
 
     def LDA(self, instruction):
         if instruction.mode == 'immediate':
