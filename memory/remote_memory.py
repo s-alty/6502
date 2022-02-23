@@ -18,7 +18,7 @@ def parse_message(bs):
     # one byte message type (only one for now)
     # one byte page number
     # 256 bytes page
-    _optype, pageno, bs = struct.unpack('cc256s'. bs)
+    _optype, pageno, bs = struct.unpack('cc256s', bs)
     return Page(int.from_bytes(pageno, 'little', signed=False), bytearray(bs))
 
 
@@ -43,6 +43,7 @@ def send_set_val_request(sock, remote_addr, page, index, val):
 class RemoteMemory:
     def __init__(self, config):
         self.config = config
+        # store the zeropage locally
         self.zeropage = Page(0, bytearray(256))
         self.current_page = None
 
@@ -51,7 +52,7 @@ class RemoteMemory:
 
         # we will spawn a thread for the listener that writes all incoming messages to a queue
         self.queue = queue.Queue(maxsize=64)
-        threading.Thread(target=monitor_responses, args=(self.listener, self.queue), daemon=True).start()
+        threading.Thread(target=monitor_responses, args=(self.sock, self.queue), daemon=True).start()
 
 
     def get_page(self, pageno):
@@ -80,6 +81,8 @@ class RemoteMemory:
         return self.current_page.data[lo]
 
 
+    # TODO: instead of writing every value back individually, maybe we should just do the write locally
+    # and store the whole page when the current_page changes
     def set_addr(self, addr, val):
         hi, lo = divmod(addr, 256)
         if hi == 0:
