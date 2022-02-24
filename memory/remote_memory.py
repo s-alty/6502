@@ -104,4 +104,15 @@ class RemoteMemory:
         raise TypeError
 
     def __setitem__(self, key, val):
-        return self.set_addr(key, val)
+        if isinstance(key, int):
+            if key >= 65536:
+                raise KeyError
+            return self.set_addr(key, val)
+
+        if isinstance(key, slice):
+            r = range(*key.indices(65536))
+            for addr,v in zip(r, val):
+                self.set_addr(addr, v)
+            return None
+
+        raise TypeError
