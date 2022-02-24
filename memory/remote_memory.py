@@ -90,4 +90,18 @@ class RemoteMemory:
 
         send_set_val_request(self.sock, (self.config['remote_host'], self.config['remote_port']), hi, lo, val)
 
-    # TODO: override the slice methods so that we can use this class as a drop in replacement for the memory in 6502.py
+
+    def __getitem__(self, key):
+        if isinstance(key, int):
+            if key >= 65536:
+                raise KeyError
+            return self.get_addr(key)
+
+        if isinstance(key, slice):
+            r = range(*key.indices(65536))
+            return [self.get_addr(addr) for addr in r]
+
+        raise TypeError
+
+    def __setitem__(self, key, val):
+        return self.set_addr(key, val)
